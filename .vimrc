@@ -1,3 +1,5 @@
+let $USE_SYSTEM_GO=1
+
 set nocompatible
 
 syntax on
@@ -87,7 +89,20 @@ set nowritebackup
 set cmdheight=2
 set updatetime=300
 set shortmess+=c
-set signcolumn=auto
+set signcolumn=yes
+
+au BufRead,BufNewFile *.sbt,*.sc set filetype=scala
+
+inoremap <silent><expr> <TAB>
+      \ pumvisible() ? "\<C-n>" :
+      \ <SID>check_back_space() ? "\<TAB>" :
+      \ coc#refresh()
+inoremap <expr><S-TAB> pumvisible() ? "\<C-p>" : "\<C-h>"
+
+function! s:check_back_space() abort
+  let col = col('.') - 1
+  return !col || getline('.')[col - 1]  =~# '\s'
+endfunction
 
 autocmd ColorScheme * highlight CocErrorFloat guifg=#ffffff
 autocmd ColorScheme * highlight CocInfoFloat guifg=#ffffff
@@ -95,13 +110,15 @@ autocmd ColorScheme * highlight CocWarningFloat guifg=#ffffff
 autocmd ColorScheme * highlight SignColumn guibg=#adadad
 
 autocmd CursorHold * silent call CocActionAsync('highlight')
+
 inoremap <silent><expr> <c-@> coc#refresh()
+inoremap <silent><expr> <cr> pumvisible() ? coc#_select_confirm()
+                              \: "\<C-g>u\<CR>\<c-r>=coc#on_enter()\<CR>"
 
 set statusline^=%{coc#status()}%{get(b:,'coc_current_function','')}
 
 """---------nerdtree-------
 let g:NERDTreeWinSize=40
-
 let NERDTreeShowHidden=1
 
 
@@ -117,6 +134,7 @@ nnoremap <S-Tab> <C-w>h
 nnoremap <C-w> <C-u>
 nnoremap <C-s> <C-d>
 
+
 autocmd BufEnter *.go nmap <leader>t  <Plug>(go-test)
 autocmd BufEnter *.go nmap <leader>tt <Plug>(go-test-func)
 autocmd BufEnter *.go nmap <leader>c  <Plug>(go-coverage-toggle)
@@ -126,9 +144,63 @@ autocmd BufEnter *.go nmap <leader>ci  <Plug>(go-describe)
 autocmd BufEnter *.go nmap <leader>cc  <Plug>(go-callers)
 autocmd BufEnter *.go nmap <leader>cs  <Plug>(go-callstack)
 
-nmap <leader>r <Plug>(coc-rename)
-nmap <leader>d :CocDiagnostics<CR>
-nmap <leader>cr  <Plug>(coc-references)
+nmap <silent> [g <Plug>(coc-diagnostic-prev)
+nmap <silent> ]g <Plug>(coc-diagnostic-next)
 
-nmap <C-a> <C-o>
-nmap <C-d> <Plug>(coc-definition)
+nmap <silent> gd <Plug>(coc-definition)
+nmap <silent> gy <Plug>(coc-type-definition)
+nmap <silent> gi <Plug>(coc-implementation)
+nmap <silent> gr <Plug>(coc-references)
+
+nmap <Leader>ws <Plug>(coc-metals-expand-decoration)
+nnoremap <silent> K :call <SID>show_documentation()<CR>
+
+function! s:show_documentation()
+  if (index(['vim','help'], &filetype) >= 0)
+    execute 'h '.expand('<cword>')
+  elseif (coc#rpc#ready())
+    call CocActionAsync('doHover')
+  else
+    execute '!' . &keywordprg . " " . expand('<cword>')
+  endif
+endfunction
+
+autocmd CursorHold * silent call CocActionAsync('highlight')
+
+nmap <leader>rn <Plug>(coc-rename)
+
+augroup mygroup
+  autocmd!
+  " Update signature help on jump placeholder
+  autocmd User CocJumpPlaceholder call CocActionAsync('showSignatureHelp')
+augroup end
+
+xmap <leader>a  <Plug>(coc-codeaction-selected)
+nmap <leader>a  <Plug>(coc-codeaction-selected)
+
+nmap <leader>ac  <Plug>(coc-codeaction)
+
+nmap <leader>qf  <Plug>(coc-fix-current)
+
+command! -nargs=0 Format :call CocAction('format')
+command! -nargs=? Fold :call     CocAction('fold', <f-args>)
+
+nnoremap <leader>cl :<C-u>call CocActionAsync('codeLensAction')<CR>
+
+nnoremap <silent><nowait> <space>a  :<C-u>CocList diagnostics<cr>
+nnoremap <silent><nowait> <space>e  :<C-u>CocList extensions<cr>
+nnoremap <silent><nowait> <space>c  :<C-u>CocList commands<cr>
+nnoremap <silent><nowait> <space>o  :<C-u>CocList outline<cr>
+nnoremap <silent><nowait> <space>s  :<C-u>CocList -I symbols<cr>
+nnoremap <silent><nowait> <space>j  :<C-u>CocNext<CR>
+nnoremap <silent><nowait> <space>k  :<C-u>CocPrev<CR>
+nnoremap <silent><nowait> <space>p  :<C-u>CocListResume<CR>
+
+inoremap <silent><expr> <cr> pumvisible() ? coc#_select_confirm()
+      \: "\<C-g>u\<CR>\<c-r>=coc#on_enter()\<CR>"
+
+nnoremap <silent> <space>t :<C-u>CocCommand metals.tvp<CR>
+nnoremap <silent> <space>tp :<C-u>CocCommand metals.tvp metalsPackages<CR>
+nnoremap <silent> <space>tc :<C-u>CocCommand metals.tvp metalsCompile<CR>
+nnoremap <silent> <space>tb :<C-u>CocCommand metals.tvp metalsBuild<CR>
+nnoremap <silent> <space>tf :<C-u>CocCommand metals.revealInTreeView metalsPackages<CR>
